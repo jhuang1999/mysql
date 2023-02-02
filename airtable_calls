@@ -1,0 +1,63 @@
+import os
+import requests
+from airtable import Airtable
+import mysql.connector
+
+# Connect to MySQL database
+cnx = mysql.connector.connect(
+    user="jhuang",
+    password="JHmysql1!",
+    host="45.79.103.219",
+    database="db_law"
+)
+
+# Extract information from incoming call event
+caller_number = "123456789"
+call_time = "2023-01-31 12:00:00"
+
+# Insert information into MySQL database
+cursor = cnx.cursor()
+insert_sql = "INSERT INTO LAW_Incoming_Data (caller_number, call_time) VALUES (%s, %s)"
+cursor.execute(insert_sql, (caller_number, call_time))
+cnx.commit()
+
+# Execute SQL query to retrieve data
+cursor = cnx.cursor()
+query = "SELECT * FROM LAW_Incoming_Data"
+cursor.execute(query)
+rows = cursor.fetchall()
+
+# Airtable API
+AIRTABLE_BASE_ID=os.environ.get('AIRTABLE_BASE_ID')
+AIRTABLE_TABLE_NAME=os.environ.get('AIRTABLE_TABLE_NAME')
+AIRTABLE_API_KEY=os.environ.get('AIRTABLE_API_KEY')
+
+endpoint=f'https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}'
+
+# Function call for Email and Name inputs
+
+def add_to_airtable(email=None, name=""):
+  if email is None:
+    return
+  headers= {
+    "Authorization": f"Bearer {AIRTABLE_API_KEY}",
+    "Content-Type": "application/json"
+  }
+
+  data = {
+  "records": [
+          {
+          "fields": {
+              "name": name,
+              "Email": email
+              }
+          }  
+      ]  
+  }
+  r = requests.post(endpoint, json=data, headers=headers)
+  print(r.json())
+
+email = input("What is your email? ")
+name = input("What is your name? ")
+
+add_to_airtable(email, name=name)
